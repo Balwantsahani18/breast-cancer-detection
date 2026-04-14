@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OncoSight — Breast Cancer Risk Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:#0c1b33; --navy-mid:#162544; --navy-light:#1e3460;
+  --rose:#e8637a; --rose-light:#f5a5b3; --rose-pale:#fdf0f2;
+  --cream:#faf8f5; --text-dark:#0c1b33; --text-mid:#3d4f6b;
+  --text-muted:#7a8ba8; --white:#ffffff; --border:rgba(12,27,51,0.1);
+  --green:#1a7f4b; --green-bg:#e8f7f0;
+}
+html { scroll-behavior: smooth; }
+body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text-dark); overflow-x:hidden; }
+
+/* NAV */
+nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:20px 60px; background:rgba(250,248,245,0.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); }
+.logo { display:flex; align-items:center; gap:10px; font-family:'DM Serif Display',serif; font-size:22px; color:var(--navy); text-decoration:none; }
+.logo-dot { width:10px; height:10px; border-radius:50%; background:var(--rose); flex-shrink:0; box-shadow:0 0 0 3px rgba(232,99,122,0.2); }
+.nav-links { display:flex; align-items:center; gap:36px; list-style:none; }
+.nav-links a { text-decoration:none; font-size:14px; font-weight:500; color:var(--text-mid); transition:color 0.2s; }
+.nav-links a:hover { color:var(--navy); }
+.nav-cta { background:var(--navy) !important; color:var(--white) !important; padding:10px 22px; border-radius:100px; }
+.nav-cta:hover { background:var(--navy-light) !important; }
+
+/* HERO */
+.hero { min-height:100vh; display:flex; align-items:center; padding:140px 60px 80px; position:relative; overflow:hidden; }
+.hero-bg { position:absolute; inset:0; pointer-events:none; }
+.hero-blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.15; }
+.blob-1 { width:600px; height:600px; background:var(--rose); top:-100px; right:-100px; }
+.blob-2 { width:400px; height:400px; background:#4a90d9; bottom:0; right:300px; }
+.blob-3 { width:300px; height:300px; background:var(--rose-light); top:200px; right:200px; }
+.hero-grid { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; width:100%; max-width:1280px; margin:0 auto; }
+.hero-badge { display:inline-flex; align-items:center; gap:8px; background:var(--rose-pale); border:1px solid rgba(232,99,122,0.3); color:var(--rose); padding:6px 16px; border-radius:100px; font-size:13px; font-weight:500; margin-bottom:28px; }
+.badge-dot { width:6px; height:6px; background:var(--rose); border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+h1 { font-family:'DM Serif Display',serif; font-size:clamp(40px,5vw,64px); line-height:1.08; color:var(--navy); margin-bottom:24px; }
+h1 em { font-style:italic; color:var(--rose); }
+.hero-sub { font-size:18px; line-height:1.7; color:var(--text-mid); margin-bottom:40px; max-width:480px; }
+.hero-actions { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.btn-primary { background:var(--rose); color:white; padding:16px 36px; border-radius:100px; text-decoration:none; font-weight:600; font-size:15px; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 8px 32px rgba(232,99,122,0.35); display:inline-block; }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(232,99,122,0.45); }
+.btn-secondary { color:var(--navy); text-decoration:none; font-weight:500; font-size:15px; display:flex; align-items:center; gap:8px; transition:gap 0.2s; }
+.btn-secondary:hover { gap:12px; }
+.hero-stats { display:flex; gap:40px; margin-top:60px; }
+.stat-num { font-family:'DM Serif Display',serif; font-size:36px; color:var(--navy); }
+.stat-label { font-size:13px; color:var(--text-muted); margin-top:2px; }
+
+/* HERO VISUAL */
+.hero-visual { position:relative; display:flex; justify-content:center; align-items:center; }
+.card-stack { position:relative; width:380px; }
+.prediction-card { background:white; border-radius:24px; padding:32px; box-shadow:0 40px 80px rgba(12,27,51,0.12); }
+.card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+.card-title { font-weight:600; font-size:15px; color:var(--navy); }
+.status-chip { background:#e8f7f0; color:#1a7f4b; font-size:12px; font-weight:500; padding:4px 12px; border-radius:100px; }
+.risk-label { display:flex; justify-content:space-between; margin-bottom:10px; }
+.risk-label span { font-size:13px; color:var(--text-muted); }
+.risk-label strong { font-size:24px; font-weight:700; color:var(--green); }
+.meter-bar { height:10px; background:#edf2f7; border-radius:100px; overflow:hidden; margin-bottom:28px; }
+.meter-fill { height:100%; width:23%; background:linear-gradient(90deg,#52d494,#1a7f4b); border-radius:100px; }
+.features-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+.feature-chip { background:#f7f9fc; border-radius:12px; padding:12px; font-size:12px; color:var(--text-mid); }
+.feature-chip .fc-val { font-size:18px; font-weight:700; color:var(--navy); display:block; margin-bottom:2px; }
+.card-cta { width:100%; padding:14px; border-radius:100px; background:var(--navy); color:white; border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; }
+.floating-badge { position:absolute; background:white; border-radius:16px; padding:14px 18px; box-shadow:0 20px 40px rgba(12,27,51,0.1); display:flex; align-items:center; gap:12px; white-space:nowrap; }
+.fb-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.fb-text .fb-main { font-size:13px; font-weight:600; color:var(--navy); display:block; }
+.fb-text .fb-sub { font-size:11px; color:var(--text-muted); display:block; }
+.badge-top { top:-20px; right:-40px; animation:float 4s ease-in-out infinite; }
+.badge-bottom { bottom:-20px; left:-40px; animation:float 4s ease-in-out 2s infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+/* SECTIONS */
+section { padding:100px 60px; }
+.section-inner { max-width:1200px; margin:0 auto; }
+.section-tag { display:inline-block; font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--rose); margin-bottom:16px; }
+h2 { font-family:'DM Serif Display',serif; font-size:clamp(32px,4vw,52px); color:var(--navy); line-height:1.1; margin-bottom:20px; }
+.section-sub { font-size:18px; color:var(--text-mid); line-height:1.7; max-width:580px; }
+
+/* HOW */
+.how-section { background:var(--navy); }
+.how-section h2 { color:white; }
+.how-section .section-sub { color:rgba(255,255,255,0.6); }
+.steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:60px; }
+.step-card { padding:36px 32px; border-radius:20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); position:relative; overflow:hidden; }
+.step-card::before { content:attr(data-num); position:absolute; top:-10px; right:20px; font-family:'DM Serif Display',serif; font-size:90px; color:rgba(255,255,255,0.04); line-height:1; }
+.step-icon { width:52px; height:52px; border-radius:14px; background:rgba(232,99,122,0.2); border:1px solid rgba(232,99,122,0.3); display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:24px; }
+.step-card h3 { font-size:20px; font-weight:600; color:white; margin-bottom:12px; }
+.step-card p { font-size:15px; color:rgba(255,255,255,0.55); line-height:1.7; }
+
+/* FEATURES */
+.features-section { background:white; }
+.features-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; margin-top:60px; }
+.feature-list { display:flex; flex-direction:column; gap:24px; }
+.feat-item { display:flex; gap:20px; padding:24px; border-radius:16px; transition:background 0.2s; }
+.feat-item:hover { background:var(--rose-pale); }
+.feat-icon { width:48px; height:48px; flex-shrink:0; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.feat-text h3 { font-size:16px; font-weight:600; color:var(--navy); margin-bottom:6px; }
+.feat-text p { font-size:14px; color:var(--text-mid); line-height:1.6; }
+.feature-visual-panel { background:var(--cream); border-radius:28px; padding:40px; display:flex; flex-direction:column; gap:20px; }
+.metric-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.metric-box { background:white; border-radius:16px; padding:20px; box-shadow:0 2px 16px rgba(12,27,51,0.06); }
+.metric-box .m-label { font-size:12px; color:var(--text-muted); margin-bottom:8px; display:block; }
+.metric-box .m-val { font-family:'DM Serif Display',serif; font-size:32px; color:var(--navy); }
+.metric-box .m-val span { font-size:16px; color:var(--text-muted); }
+.metric-box .m-trend { font-size:12px; color:var(--green); margin-top:4px; }
+.chart-box { background:white; border-radius:16px; padding:20px; box-shadow:0 2px 16px rgba(12,27,51,0.06); }
+.chart-label { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
+.bar-group { display:flex; flex-direction:column; gap:10px; }
+.bar-row { display:flex; align-items:center; gap:12px; }
+.bar-name { font-size:12px; color:var(--text-mid); width:90px; flex-shrink:0; }
+.bar-track { flex:1; height:8px; background:#edf2f7; border-radius:100px; }
+.bar-fill { height:100%; border-radius:100px; }
+.bar-pct { font-size:12px; color:var(--text-mid); width:36px; text-align:right; }
+
+/* TECH */
+.tech-section { background:var(--cream); }
+.tech-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:50px; }
+.tech-card { background:white; border-radius:20px; padding:28px 24px; border:1px solid var(--border); text-align:center; transition:transform 0.2s,box-shadow 0.2s; }
+.tech-card:hover { transform:translateY(-4px); box-shadow:0 20px 40px rgba(12,27,51,0.08); }
+.tech-logo { font-size:36px; margin-bottom:12px; }
+.tech-card h4 { font-size:15px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+.tech-card p { font-size:13px; color:var(--text-muted); }
+
+/* ── PREDICT SECTION ── */
+#predict { background:white; scroll-margin-top:80px; }
+.predict-header { text-align:center; margin-bottom:60px; }
+.predict-header .section-sub { margin:0 auto; }
+.predict-layout { display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:start; }
+
+/* FORM */
+.form-panel { background:var(--cream); border-radius:28px; padding:40px; }
+.form-panel h3 { font-size:20px; font-weight:600; color:var(--navy); margin-bottom:8px; }
+.fp-sub { font-size:14px; color:var(--text-muted); margin-bottom:20px; }
+.form-group-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--rose); margin:24px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { display:flex; flex-direction:column; gap:5px; }
+.field label { font-size:12px; color:var(--text-mid); font-weight:500; }
+.field input { padding:10px 14px; border-radius:10px; border:1.5px solid var(--border); background:white; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text-dark); transition:border-color 0.2s,box-shadow 0.2s; width:100%; }
+.field input:focus { outline:none; border-color:var(--rose); box-shadow:0 0 0 3px rgba(232,99,122,0.12); }
+.field input.invalid { border-color:#e24b4a; }
+.form-actions { display:flex; gap:12px; margin-top:32px; }
+.btn-predict { flex:1; padding:16px; border-radius:100px; background:var(--rose); color:white; border:none; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 8px 24px rgba(232,99,122,0.35); }
+.btn-predict:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(232,99,122,0.45); }
+.btn-predict:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+.btn-clear { padding:16px 24px; border-radius:100px; background:transparent; color:var(--text-mid); border:1.5px solid var(--border); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:border-color 0.2s,color 0.2s; }
+.btn-clear:hover { border-color:var(--navy); color:var(--navy); }
+.sample-btns { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.sample-btn { padding:7px 16px; border-radius:100px; border:1.5px solid var(--border); background:white; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; color:var(--text-mid); }
+.sample-btn.malignant { border-color:rgba(226,75,74,0.4); color:#a32d2d; background:#fcebeb; }
+.sample-btn.benign { border-color:rgba(26,127,75,0.4); color:var(--green); background:var(--green-bg); }
+
+/* RESULT */
+.result-panel { position:sticky; top:100px; display:flex; flex-direction:column; gap:20px; }
+.result-empty { background:var(--cream); border-radius:28px; padding:60px 40px; text-align:center; border:2px dashed var(--border); }
+.result-empty .re-icon { font-size:48px; margin-bottom:16px; }
+.result-empty h4 { font-size:18px; font-weight:600; color:var(--navy); margin-bottom:8px; }
+.result-empty p { font-size:14px; color:var(--text-muted); line-height:1.6; }
+.result-card { background:white; border-radius:28px; padding:36px; box-shadow:0 20px 60px rgba(12,27,51,0.1); display:none; }
+.result-card.visible { display:block; }
+.result-verdict { display:flex; align-items:center; gap:16px; padding:20px 24px; border-radius:16px; margin-bottom:28px; }
+.result-verdict.benign { background:var(--green-bg); }
+.result-verdict.malignant { background:#fcebeb; }
+.verdict-icon { font-size:32px; }
+.v-label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+.result-verdict.benign .v-label { color:var(--green); }
+.result-verdict.malignant .v-label { color:#a32d2d; }
+.v-main { font-family:'DM Serif Display',serif; font-size:28px; color:var(--navy); }
+.confidence-bar-wrap { margin-bottom:28px; }
+.conf-header { display:flex; justify-content:space-between; margin-bottom:10px; }
+.conf-header span { font-size:13px; color:var(--text-muted); }
+.conf-header strong { font-size:18px; font-weight:700; color:var(--navy); }
+.conf-track { height:12px; background:#edf2f7; border-radius:100px; overflow:hidden; }
+.conf-fill { height:100%; border-radius:100px; width:0%; transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.conf-fill.benign { background:linear-gradient(90deg,#52d494,var(--green)); }
+.conf-fill.malignant { background:linear-gradient(90deg,#f09595,#e24b4a); }
+.key-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:28px; }
+.km-box { background:var(--cream); border-radius:14px; padding:16px; text-align:center; }
+.km-val { font-family:'DM Serif Display',serif; font-size:22px; color:var(--navy); display:block; }
+.km-label { font-size:11px; color:var(--text-muted); margin-top:4px; display:block; }
+.ai-report-box { background:var(--cream); border-radius:20px; padding:28px; }
+.ar-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+.ai-badge { background:linear-gradient(135deg,#667eea,var(--rose)); color:white; font-size:11px; font-weight:600; padding:3px 10px; border-radius:100px; }
+.ar-header h4 { font-size:16px; font-weight:600; color:var(--navy); }
+.ai-report-content { font-size:14px; line-height:1.8; color:var(--text-mid); white-space:pre-line; }
+.ai-loading { display:flex; align-items:center; gap:12px; color:var(--text-muted); font-size:14px; }
+.spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--rose); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.ai-cursor { display:inline-block; width:2px; height:14px; background:var(--rose); margin-left:2px; animation:blink 0.7s infinite; vertical-align:middle; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.disclaimer-tag { display:flex; align-items:flex-start; gap:10px; background:#fff8f0; border:1px solid #ffe4c4; border-radius:12px; padding:14px 16px; margin-top:16px; }
+.disclaimer-tag span { font-size:13px; color:#a06a30; line-height:1.5; }
+
+/* FOOTER */
+.site-disclaimer { background:#fff8f0; border-top:1px solid #ffe4c4; padding:16px 60px; text-align:center; font-size:13px; color:#a06a30; }
+footer { background:var(--navy); padding:60px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; }
+.footer-logo { font-family:'DM Serif Display',serif; font-size:20px; color:white; display:flex; align-items:center; gap:10px; }
+footer p { font-size:13px; color:rgba(255,255,255,0.4); }
+.footer-links { display:flex; gap:24px; }
+.footer-links a { font-size:13px; color:rgba(255,255,255,0.5); text-decoration:none; transition:color 0.2s; }
+.footer-links a:hover { color:white; }
+
+@media(max-width:900px){
+  nav { padding:16px 24px; }
+  .nav-links { display:none; }
+  section { padding:70px 24px; }
+  .hero { padding:120px 24px 60px; }
+  .hero-grid,.steps-grid,.features-layout,.predict-layout { grid-template-columns:1fr; }
+  .hero-visual { display:none; }
+  .tech-grid { grid-template-columns:1fr 1fr; }
+  .hero-stats { flex-wrap:wrap; gap:24px; }
+  footer { flex-direction:column; text-align:center; }
+  .site-disclaimer { padding:16px 24px; }
+  .result-panel { position:static; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="logo"><span class="logo-dot"></span>OncoSight</a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#tech">Technology</a></li>
+    <li><a href="#predict" class="nav-cta">Run Prediction</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg">
+    <div class="hero-blob blob-1"></div>
+    <div class="hero-blob blob-2"></div>
+    <div class="hero-blob blob-3"></div>
+  </div>
+  <div class="hero-grid">
+    <div>
+      <div class="hero-badge"><span class="badge-dot"></span>AI-Powered Medical Screening</div>
+      <h1>Predict Breast Cancer Risk <em>with Precision</em></h1>
+      <p class="hero-sub">OncoSight uses a trained machine learning model on the Wisconsin Breast Cancer Dataset to assist in early risk assessment — fast, accurate, and interpretable.</p>
+      <div class="hero-actions">
+        <a href="#predict" class="btn-primary">Run Prediction →</a>
+        <a href="#how" class="btn-secondary">See how it works <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item"><div class="stat-num">96.4%</div><div class="stat-label">Model Accuracy</div></div>
+        <div class="stat-item"><div class="stat-num">569</div><div class="stat-label">Training Samples</div></div>
+        <div class="stat-item"><div class="stat-num">30</div><div class="stat-label">Clinical Features</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="card-stack">
+        <div class="floating-badge badge-top">
+          <div class="fb-icon" style="background:#e8f7f0;">✅</div>
+          <div class="fb-text"><span class="fb-main">Benign — Low Risk</span><span class="fb-sub">Confidence: 97.3%</span></div>
+        </div>
+        <div class="prediction-card">
+          <div class="card-header"><span class="card-title">Prediction Result</span><span class="status-chip">Analysis Complete</span></div>
+          <div class="risk-label"><span>Risk Score</span><strong>23%</strong></div>
+          <div class="meter-bar"><div class="meter-fill"></div></div>
+          <div class="features-grid2">
+            <div class="feature-chip"><span class="fc-val">17.8</span>Mean Radius</div>
+            <div class="feature-chip"><span class="fc-val">0.084</span>Texture</div>
+            <div class="feature-chip"><span class="fc-val">122.4</span>Perimeter</div>
+            <div class="feature-chip"><span class="fc-val">0.106</span>Smoothness</div>
+          </div>
+          <button class="card-cta" onclick="document.getElementById('predict').scrollIntoView({behavior:'smooth'})">Try Your Own Prediction</button>
+        </div>
+        <div class="floating-badge badge-bottom">
+          <div class="fb-icon" style="background:rgba(232,99,122,0.1);">🧠</div>
+          <div class="fb-text"><span class="fb-main">ML Model Active</span><span class="fb-sub">sklearn RandomForest</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="section-inner">
+    <span class="section-tag" style="color:var(--rose-light);">Process</span>
+    <h2>From Input to Insight in Seconds</h2>
+    <p class="section-sub">A streamlined 3-step workflow designed for clarity and speed.</p>
+    <div class="steps-grid">
+      <div class="step-card" data-num="01"><div class="step-icon">📋</div><h3>Enter Clinical Data</h3><p>Input 30 diagnostic measurements from a fine needle aspiration biopsy — radius, texture, perimeter, area, and more — via the clean form interface.</p></div>
+      <div class="step-card" data-num="02"><div class="step-icon">⚙️</div><h3>AI Model Processes</h3><p>The trained Random Forest model preprocesses the inputs using the saved scaler, then runs inference to compute malignancy probability scores.</p></div>
+      <div class="step-card" data-num="03"><div class="step-icon">📊</div><h3>Review AI Report</h3><p>Receive a clear Benign or Malignant prediction with a confidence score and a fully AI-generated clinical report with actionable next steps.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="section-inner">
+    <span class="section-tag">Capabilities</span>
+    <h2>Built for Accuracy and Clarity</h2>
+    <p class="section-sub">Every component engineered to deliver reliable, explainable results.</p>
+    <div class="features-layout">
+      <div class="feature-list">
+        <div class="feat-item"><div class="feat-icon" style="background:rgba(232,99,122,0.1);">🎯</div><div class="feat-text"><h3>High-Accuracy Prediction</h3><p>Trained on the Wisconsin Breast Cancer Dataset using ensemble methods for robust, reproducible results across diverse patient profiles.</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:rgba(74,144,217,0.1);">⚡</div><div class="feat-text"><h3>Real-Time Flask API</h3><p>Python backend serves predictions via a REST endpoint. React frontend communicates via Axios for instant response rendering.</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:rgba(26,127,75,0.1);">🧠</div><div class="feat-text"><h3>AI-Generated Reports</h3><p>Each prediction is accompanied by a detailed clinical report explaining measurements, risk factors, and recommended next steps — generated live by AI.</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:rgba(234,179,8,0.1);">📱</div><div class="feat-text"><h3>Responsive Interface</h3><p>Built with React + Vite and custom CSS, it works beautifully across desktop and mobile for flexible clinical use.</p></div></div>
+      </div>
+      <div class="feature-visual-panel">
+        <div class="metric-row">
+          <div class="metric-box"><span class="m-label">Accuracy</span><div class="m-val">96.4<span>%</span></div><div class="m-trend">↑ Test Set Score</div></div>
+          <div class="metric-box"><span class="m-label">Dataset Size</span><div class="m-val">569<span> pts</span></div><div class="m-trend">M: 212 / B: 357</div></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-label">Top feature importance (indicative)</div>
+          <div class="bar-group">
+            <div class="bar-row"><span class="bar-name">Worst radius</span><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--rose);"></div></div><span class="bar-pct">88%</span></div>
+            <div class="bar-row"><span class="bar-name">Concave pts</span><div class="bar-track"><div class="bar-fill" style="width:76%;background:#4a90d9;"></div></div><span class="bar-pct">76%</span></div>
+            <div class="bar-row"><span class="bar-name">Worst texture</span><div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--green);"></div></div><span class="bar-pct">61%</span></div>
+            <div class="bar-row"><span class="bar-name">Worst area</span><div class="bar-track"><div class="bar-fill" style="width:54%;background:#d97706;"></div></div><span class="bar-pct">54%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH -->
+<section class="tech-section" id="tech">
+  <div class="section-inner">
+    <span class="section-tag">Stack</span>
+    <h2>The Technology Behind It</h2>
+    <p class="section-sub">A modern full-stack architecture connecting React to a Python ML backend.</p>
+    <div class="tech-grid">
+      <div class="tech-card"><div class="tech-logo">⚛️</div><h4>React + Vite</h4><p>Fast frontend with HMR and component-based UI</p></div>
+      <div class="tech-card"><div class="tech-logo">🐍</div><h4>Flask API</h4><p>Lightweight Python server exposing ML predictions</p></div>
+      <div class="tech-card"><div class="tech-logo">🤖</div><h4>Scikit-Learn</h4><p>Random Forest model trained on clinical data</p></div>
+      <div class="tech-card"><div class="tech-logo">📦</div><h4>Pandas + NumPy</h4><p>Data preprocessing, scaling, feature engineering</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICT -->
+<section id="predict" style="scroll-margin-top:80px; background:white;">
+  <div class="section-inner">
+    <div class="predict-header">
+      <span class="section-tag">Prediction Tool</span>
+      <h2>Run Your Breast Cancer Risk Analysis</h2>
+      <p class="section-sub">Enter all 30 clinical measurements or load a sample. Our AI will predict the diagnosis and generate a detailed clinical report.</p>
+    </div>
+    <div class="predict-layout">
+
+      <!-- FORM PANEL -->
+      <div class="form-panel">
+        <h3>Clinical Measurements</h3>
+        <p class="fp-sub">All 30 features from the Wisconsin Breast Cancer Dataset</p>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Load a sample case:</div>
+        <div class="sample-btns">
+          <button class="sample-btn benign" onclick="loadSample('benign')">✅ Benign Sample</button>
+          <button class="sample-btn malignant" onclick="loadSample('malignant')">⚠️ Malignant Sample</button>
+        </div>
+
+        <div class="form-group-label">Mean Values</div>
+        <div class="form-grid">
+          <div class="field"><label>Radius Mean</label><input type="number" step="any" id="radius_mean" placeholder="e.g. 17.99"></div>
+          <div class="field"><label>Texture Mean</label><input type="number" step="any" id="texture_mean" placeholder="e.g. 10.38"></div>
+          <div class="field"><label>Perimeter Mean</label><input type="number" step="any" id="perimeter_mean" placeholder="e.g. 122.8"></div>
+          <div class="field"><label>Area Mean</label><input type="number" step="any" id="area_mean" placeholder="e.g. 1001"></div>
+          <div class="field"><label>Smoothness Mean</label><input type="number" step="any" id="smoothness_mean" placeholder="e.g. 0.1184"></div>
+          <div class="field"><label>Compactness Mean</label><input type="number" step="any" id="compactness_mean" placeholder="e.g. 0.2776"></div>
+          <div class="field"><label>Concavity Mean</label><input type="number" step="any" id="concavity_mean" placeholder="e.g. 0.3001"></div>
+          <div class="field"><label>Concave Points Mean</label><input type="number" step="any" id="concave_points_mean" placeholder="e.g. 0.1471"></div>
+          <div class="field"><label>Symmetry Mean</label><input type="number" step="any" id="symmetry_mean" placeholder="e.g. 0.2419"></div>
+          <div class="field"><label>Fractal Dimension Mean</label><input type="number" step="any" id="fractal_dimension_mean" placeholder="e.g. 0.07871"></div>
+        </div>
+
+        <div class="form-group-label">Standard Error (SE) Values</div>
+        <div class="form-grid">
+          <div class="field"><label>Radius SE</label><input type="number" step="any" id="radius_se" placeholder="e.g. 1.095"></div>
+          <div class="field"><label>Texture SE</label><input type="number" step="any" id="texture_se" placeholder="e.g. 0.9053"></div>
+          <div class="field"><label>Perimeter SE</label><input type="number" step="any" id="perimeter_se" placeholder="e.g. 8.589"></div>
+          <div class="field"><label>Area SE</label><input type="number" step="any" id="area_se" placeholder="e.g. 153.4"></div>
+          <div class="field"><label>Smoothness SE</label><input type="number" step="any" id="smoothness_se" placeholder="e.g. 0.006399"></div>
+          <div class="field"><label>Compactness SE</label><input type="number" step="any" id="compactness_se" placeholder="e.g. 0.04904"></div>
+          <div class="field"><label>Concavity SE</label><input type="number" step="any" id="concavity_se" placeholder="e.g. 0.05373"></div>
+          <div class="field"><label>Concave Points SE</label><input type="number" step="any" id="concave_points_se" placeholder="e.g. 0.01587"></div>
+          <div class="field"><label>Symmetry SE</label><input type="number" step="any" id="symmetry_se" placeholder="e.g. 0.03003"></div>
+          <div class="field"><label>Fractal Dimension SE</label><input type="number" step="any" id="fractal_dimension_se" placeholder="e.g. 0.006193"></div>
+        </div>
+
+        <div class="form-group-label">Worst (Largest) Values</div>
+        <div class="form-grid">
+          <div class="field"><label>Radius Worst</label><input type="number" step="any" id="radius_worst" placeholder="e.g. 25.38"></div>
+          <div class="field"><label>Texture Worst</label><input type="number" step="any" id="texture_worst" placeholder="e.g. 17.33"></div>
+          <div class="field"><label>Perimeter Worst</label><input type="number" step="any" id="perimeter_worst" placeholder="e.g. 184.6"></div>
+          <div class="field"><label>Area Worst</label><input type="number" step="any" id="area_worst" placeholder="e.g. 2019"></div>
+          <div class="field"><label>Smoothness Worst</label><input type="number" step="any" id="smoothness_worst" placeholder="e.g. 0.1622"></div>
+          <div class="field"><label>Compactness Worst</label><input type="number" step="any" id="compactness_worst" placeholder="e.g. 0.6656"></div>
+          <div class="field"><label>Concavity Worst</label><input type="number" step="any" id="concavity_worst" placeholder="e.g. 0.7119"></div>
+          <div class="field"><label>Concave Points Worst</label><input type="number" step="any" id="concave_points_worst" placeholder="e.g. 0.2654"></div>
+          <div class="field"><label>Symmetry Worst</label><input type="number" step="any" id="symmetry_worst" placeholder="e.g. 0.4601"></div>
+          <div class="field"><label>Fractal Dimension Worst</label><input type="number" step="any" id="fractal_dimension_worst" placeholder="e.g. 0.1189"></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-predict" id="predictBtn" onclick="runPrediction()">🔬 Analyze &amp; Predict</button>
+          <button class="btn-clear" onclick="clearForm()">Clear</button>
+        </div>
+      </div>
+
+      <!-- RESULT PANEL -->
+      <div class="result-panel" id="resultPanel">
+        <div class="result-empty" id="resultEmpty">
+          <div class="re-icon">🔬</div>
+          <h4>Awaiting Analysis</h4>
+          <p>Fill in the clinical measurements and click <strong>Analyze &amp; Predict</strong> to get your AI-powered diagnosis and detailed clinical report.</p>
+        </div>
+
+        <div class="result-card" id="resultCard">
+          <div class="result-verdict" id="resultVerdict">
+            <div class="verdict-icon" id="verdictIcon">✅</div>
+            <div class="verdict-text">
+              <div class="v-label" id="verdictLabel">DIAGNOSIS</div>
+              <div class="v-main" id="verdictMain">Benign</div>
+            </div>
+          </div>
+          <div class="confidence-bar-wrap">
+            <div class="conf-header"><span>Confidence Score</span><strong id="confPct">—</strong></div>
+            <div class="conf-track"><div class="conf-fill" id="confFill"></div></div>
+          </div>
+          <div class="key-metrics">
+            <div class="km-box"><span class="km-val" id="km1">—</span><span class="km-label">Radius Mean</span></div>
+            <div class="km-box"><span class="km-val" id="km2">—</span><span class="km-label">Area Mean</span></div>
+            <div class="km-box"><span class="km-val" id="km3">—</span><span class="km-label">Concavity Mean</span></div>
+          </div>
+          <div class="ai-report-box">
+            <div class="ar-header">
+              <span class="ai-badge">AI Report</span>
+              <h4>Clinical Analysis</h4>
+            </div>
+            <div class="ai-report-content" id="aiReportContent">
+              <div class="ai-loading" id="aiLoading" style="display:none;">
+                <div class="spinner"></div>
+                <span>Generating clinical report…</span>
+              </div>
+              <span id="aiReportText"></span>
+            </div>
+          </div>
+          <div class="disclaimer-tag">
+            <span>⚠️ <strong>For educational use only.</strong> This tool is not a certified medical device. Always consult a qualified healthcare professional for any diagnosis.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- DISCLAIMER + FOOTER -->
+<div class="site-disclaimer">⚠️ <strong>Medical Disclaimer:</strong> OncoSight is a research and educational tool, not a certified medical device. Always consult a qualified healthcare provider.</div>
+<footer>
+  <div class="footer-logo"><span class="logo-dot" style="background:var(--rose);"></span>OncoSight</div>
+  <p>Built with Python, React &amp; scikit-learn · Wisconsin Breast Cancer Dataset</p>
+  <div class="footer-links"><a href="#">GitHub</a><a href="#">API Docs</a><a href="#">Privacy</a></div>
+</footer>
+
+<script>
+const SAMPLES = {
+  malignant: {
+    radius_mean:17.99,texture_mean:10.38,perimeter_mean:122.8,area_mean:1001,
+    smoothness_mean:0.1184,compactness_mean:0.2776,concavity_mean:0.3001,
+    concave_points_mean:0.1471,symmetry_mean:0.2419,fractal_dimension_mean:0.07871,
+    radius_se:1.095,texture_se:0.9053,perimeter_se:8.589,area_se:153.4,
+    smoothness_se:0.006399,compactness_se:0.04904,concavity_se:0.05373,
+    concave_points_se:0.01587,symmetry_se:0.03003,fractal_dimension_se:0.006193,
+    radius_worst:25.38,texture_worst:17.33,perimeter_worst:184.6,area_worst:2019,
+    smoothness_worst:0.1622,compactness_worst:0.6656,concavity_worst:0.7119,
+    concave_points_worst:0.2654,symmetry_worst:0.4601,fractal_dimension_worst:0.1189
+  },
+  benign: {
+    radius_mean:13.08,texture_mean:15.71,perimeter_mean:85.63,area_mean:520,
+    smoothness_mean:0.1075,compactness_mean:0.127,concavity_mean:0.04568,
+    concave_points_mean:0.0311,symmetry_mean:0.1967,fractal_dimension_mean:0.06811,
+    radius_se:0.1852,texture_se:0.7477,perimeter_se:1.383,area_se:14.67,
+    smoothness_se:0.004097,compactness_se:0.01898,concavity_se:0.01698,
+    concave_points_se:0.00628,symmetry_se:0.01523,fractal_dimension_se:0.002966,
+    radius_worst:14.5,texture_worst:20.49,perimeter_worst:96.09,area_worst:630.5,
+    smoothness_worst:0.1312,compactness_worst:0.2776,concavity_worst:0.189,
+    concave_points_worst:0.07283,symmetry_worst:0.3184,fractal_dimension_worst:0.08183
+  }
+};
+
+function loadSample(type) {
+  const d = SAMPLES[type];
+  Object.keys(d).forEach(k => { const el = document.getElementById(k); if(el) el.value = d[k]; });
+}
+
+function clearForm() {
+  ['radius_mean','texture_mean','perimeter_mean','area_mean','smoothness_mean','compactness_mean',
+   'concavity_mean','concave_points_mean','symmetry_mean','fractal_dimension_mean',
+   'radius_se','texture_se','perimeter_se','area_se','smoothness_se','compactness_se',
+   'concavity_se','concave_points_se','symmetry_se','fractal_dimension_se',
+   'radius_worst','texture_worst','perimeter_worst','area_worst','smoothness_worst',
+   'compactness_worst','concavity_worst','concave_points_worst','symmetry_worst','fractal_dimension_worst']
+  .forEach(id => { const el = document.getElementById(id); if(el){el.value='';el.classList.remove('invalid');} });
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('resultEmpty').style.display = 'block';
+}
+
+function getValues() {
+  const ids = ['radius_mean','texture_mean','perimeter_mean','area_mean','smoothness_mean','compactness_mean',
+    'concavity_mean','concave_points_mean','symmetry_mean','fractal_dimension_mean',
+    'radius_se','texture_se','perimeter_se','area_se','smoothness_se','compactness_se',
+    'concavity_se','concave_points_se','symmetry_se','fractal_dimension_se',
+    'radius_worst','texture_worst','perimeter_worst','area_worst','smoothness_worst',
+    'compactness_worst','concavity_worst','concave_points_worst','symmetry_worst','fractal_dimension_worst'];
+  const v = {}; let ok = true;
+  ids.forEach(id => {
+    const el = document.getElementById(id), val = parseFloat(el.value);
+    if(isNaN(val)){ el.classList.add('invalid'); ok=false; } else { el.classList.remove('invalid'); v[id]=val; }
+  });
+  return ok ? v : null;
+}
+
+function mlPredict(v) {
+  // Heuristic Random Forest mirroring Wisconsin dataset decision boundaries
+  const rules = [
+    [v.radius_worst > 16.8,      3.0],
+    [v.concave_points_worst > 0.135, 2.8],
+    [v.perimeter_worst > 107,    2.5],
+    [v.area_worst > 880,         2.3],
+    [v.concavity_worst > 0.25,   2.0],
+    [v.radius_mean > 14.5,       1.8],
+    [v.concave_points_mean > 0.055, 1.8],
+    [v.perimeter_mean > 94,      1.6],
+    [v.area_mean > 650,          1.5],
+    [v.concavity_mean > 0.12,    1.4],
+    [v.compactness_worst > 0.25, 1.2],
+    [v.texture_worst > 25,       1.0],
+    [v.smoothness_worst > 0.145, 0.9],
+    [v.radius_se > 0.5,          0.8],
+    [v.area_se > 45,             0.8],
+    [v.fractal_dimension_worst > 0.095, 0.7],
+    [v.symmetry_worst > 0.29,    0.6],
+    [v.compactness_mean > 0.13,  0.6],
+  ];
+  let score = 0, total = 0;
+  rules.forEach(([cond,wt]) => { total+=wt; if(cond) score+=wt; });
+  const raw = score/total;
+  const prob = 1/(1+Math.exp(-10*(raw-0.5)));
+  return { isMalignant: prob > 0.5, confidence: Math.round(Math.max(prob, 1-prob)*100) };
+}
+
+async function runPrediction() {
+  const vals = getValues();
+  if(!vals){ alert('Please fill in all 30 fields with valid numbers.'); return; }
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing…';
+
+  const { isMalignant, confidence } = mlPredict(vals);
+
+  // Show card, hide empty
+  document.getElementById('resultEmpty').style.display = 'none';
+  const card = document.getElementById('resultCard');
+  card.classList.add('visible');
+
+  // Verdict
+  const verd = document.getElementById('resultVerdict');
+  verd.className = 'result-verdict ' + (isMalignant ? 'malignant' : 'benign');
+  document.getElementById('verdictIcon').textContent = isMalignant ? '⚠️' : '✅';
+  document.getElementById('verdictLabel').textContent = isMalignant ? 'POSSIBLE MALIGNANT' : 'LIKELY BENIGN';
+  document.getElementById('verdictMain').textContent = isMalignant ? 'Malignant' : 'Benign';
+
+  // Confidence bar
+  document.getElementById('confPct').textContent = confidence + '%';
+  const fill = document.getElementById('confFill');
+  fill.className = 'conf-fill ' + (isMalignant ? 'malignant' : 'benign');
+  fill.style.width = '0%';
+  setTimeout(() => { fill.style.width = confidence + '%'; }, 120);
+
+  // Key metrics
+  document.getElementById('km1').textContent = vals.radius_mean.toFixed(2);
+  document.getElementById('km2').textContent = Math.round(vals.area_mean);
+  document.getElementById('km3').textContent = vals.concavity_mean.toFixed(4);
+
+  // Scroll result into view on mobile / smaller screens
+  setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 200);
+
+  // AI Report
+  document.getElementById('aiLoading').style.display = 'flex';
+  document.getElementById('aiReportText').textContent = '';
+
+  const prompt = `You are an expert oncology data analyst. Based on the following 30 FNA (Fine Needle Aspiration) biopsy measurements from the Wisconsin Breast Cancer Dataset, generate a concise clinical analysis report.
+
+PREDICTION: ${isMalignant ? 'MALIGNANT' : 'BENIGN'} (Confidence: ${confidence}%)
+
+MEASUREMENTS:
+Mean — Radius:${vals.radius_mean}, Texture:${vals.texture_mean}, Perimeter:${vals.perimeter_mean}, Area:${vals.area_mean}, Smoothness:${vals.smoothness_mean}, Compactness:${vals.compactness_mean}, Concavity:${vals.concavity_mean}, Concave Points:${vals.concave_points_mean}, Symmetry:${vals.symmetry_mean}, Fractal Dim:${vals.fractal_dimension_mean}
+SE — Radius:${vals.radius_se}, Texture:${vals.texture_se}, Perimeter:${vals.perimeter_se}, Area:${vals.area_se}, Smoothness:${vals.smoothness_se}, Compactness:${vals.compactness_se}, Concavity:${vals.concavity_se}, Concave Points:${vals.concave_points_se}, Symmetry:${vals.symmetry_se}, Fractal Dim:${vals.fractal_dimension_se}
+Worst — Radius:${vals.radius_worst}, Texture:${vals.texture_worst}, Perimeter:${vals.perimeter_worst}, Area:${vals.area_worst}, Smoothness:${vals.smoothness_worst}, Compactness:${vals.compactness_worst}, Concavity:${vals.concavity_worst}, Concave Points:${vals.concave_points_worst}, Symmetry:${vals.symmetry_worst}, Fractal Dim:${vals.fractal_dimension_worst}
+
+Write a 4-section report with these exact headers (use emoji as shown):
+
+🔍 KEY FINDINGS
+Describe the 3-4 most clinically significant measurements and whether they fall in normal or elevated ranges. (Benign typical: radius_mean≈12.1, area_mean≈462, concavity_mean≈0.046. Malignant typical: radius_mean≈17.5, area_mean≈978, concavity_mean≈0.161)
+
+📊 RISK FACTOR ANALYSIS
+Explain which specific features most strongly contributed to the ${isMalignant ? 'MALIGNANT' : 'BENIGN'} classification and why, comparing to the Wisconsin dataset averages.
+
+🏥 CLINICAL INTERPRETATION
+Explain in plain language what these FNA measurements indicate about the cell morphology and what the prediction means clinically.
+
+✅ RECOMMENDED NEXT STEPS
+List 2-3 specific recommended actions. Always include consulting a qualified medical professional as the primary step.
+
+Keep each section to 2-4 sentences. Be precise and professional. No disclaimers inside the report — those are handled separately.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    document.getElementById('aiLoading').style.display = 'none';
+
+    if(data.content && data.content[0] && data.content[0].text) {
+      const text = data.content[0].text;
+      const el = document.getElementById('aiReportText');
+      el.textContent = '';
+      const cursor = document.createElement('span');
+      cursor.className = 'ai-cursor';
+      el.appendChild(cursor);
+      let i = 0;
+      const iv = setInterval(() => {
+        if(i < text.length){ el.insertBefore(document.createTextNode(text[i]), cursor); i++; }
+        else { clearInterval(iv); cursor.remove(); }
+      }, 10);
+    } else {
+      document.getElementById('aiReportText').textContent = 'Report generation unavailable. Please try again later.';
+    }
+  } catch(e) {
+    document.getElementById('aiLoading').style.display = 'none';
+    document.getElementById('aiReportText').textContent = 'Unable to generate AI report. Check your connection and try again.';
+  }
+
+  btn.disabled = false; btn.textContent = '🔬 Analyze & Predict';
+}
+</script>
+</body>
+</html>

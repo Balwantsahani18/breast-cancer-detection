@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pkl
+
+# Virtual env
+venv/
+env/
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Env
+.env
+
+# Data (optional)
+*.csv
