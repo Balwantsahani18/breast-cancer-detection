@@ -2,31 +2,25 @@ import { useEffect, useState } from "react";
 
 export default function Navbar({ currentPage, onNavigate }) {
   const [scrolled, setScrolled] = useState(false);
-
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const fn = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
   const links = [
-    { key: "home",    label: "Home" },
+    { key: "home",    label: "Home"    },
     { key: "predict", label: "Predict" },
     { key: "history", label: "History" },
-    { key: "about",   label: "About" },
+    { key: "about",   label: "About"   },
   ];
 
   return (
     <nav className={`navbar${scrolled ? " scrolled" : ""}`}>
-      <button
-        className="navbar-logo"
-        onClick={() => onNavigate("home")}
-        style={{ background: "none", border: "none", padding: 0 }}
-      >
+      <button className="navbar-logo" onClick={() => onNavigate("home")}>
         <span className="navbar-logo-dot" />
         OncoSight
       </button>
-
       <ul className="navbar-links">
         {links.map((l) => (
           <li key={l.key}>
@@ -39,10 +33,7 @@ export default function Navbar({ currentPage, onNavigate }) {
           </li>
         ))}
         <li>
-          <button
-            className="navbar-cta"
-            onClick={() => onNavigate("predict")}
-          >
+          <button className="navbar-cta" onClick={() => onNavigate("predict")}>
             Run Prediction
           </button>
         </li>
