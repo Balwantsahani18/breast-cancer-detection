@@ -1,21 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
-import Navbar  from "./components/Navbar";
-import Form    from "./components/Form";
-import Result  from "./components/Result";
+import { useState, useCallback } from "react";
+import Navbar from "./components/Navbar";
+import Form   from "./components/Form";
+import Result from "./components/Result";
 import "./App.css";
 
-// ─── Toast system ────────────────────────────────────────────────
+// ── Toast system ──────────────────────────────────────────────────
 function useToasts() {
   const [toasts, setToasts] = useState([]);
-  const addToast = useCallback((msg, type = "info") => {
+  const add = useCallback((msg, type = "info") => {
     const id = Date.now();
-    setToasts((prev) => [...prev, { id, msg, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
+    setToasts((p) => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 3800);
   }, []);
-  return { toasts, addToast };
+  return { toasts, add };
 }
 
-// ─── History helpers ─────────────────────────────────────────────
+// ── localStorage history ──────────────────────────────────────────
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem("onco_history") || "[]"); }
   catch { return []; }
@@ -25,9 +25,8 @@ function saveHistory(items) {
 }
 
 // ═════════════════════════════════════════════════════════════════
-//  PAGES
+//  HOME PAGE
 // ═════════════════════════════════════════════════════════════════
-
 function HomePage({ onNavigate }) {
   return (
     <section className="hero">
@@ -37,41 +36,35 @@ function HomePage({ onNavigate }) {
         <div className="hero-blob hero-blob-3" />
       </div>
       <div className="hero-inner">
-        {/* Left content */}
+        {/* Left */}
         <div>
           <div className="hero-badge">
             <span className="hero-badge-dot" />
             AI-Powered Medical Screening
           </div>
           <h1 className="hero-title">
-            Predict Breast Cancer Risk{" "}
-            <em>with Precision</em>
+            Predict Breast Cancer Risk <em>with Precision</em>
           </h1>
           <p className="hero-desc">
             OncoSight uses a trained Random Forest model on the Wisconsin Breast
-            Cancer Dataset to deliver fast, accurate, and interpretable risk
-            assessments — complete with a live AI-generated clinical report.
+            Cancer Dataset. Enter just <strong>14 core measurements</strong> —
+            16 values are auto-calculated — and Gemini AI generates a full
+            5-section clinical report instantly.
           </p>
           <div className="hero-actions">
-            <button
-              className="btn-hero-primary"
-              onClick={() => onNavigate("predict")}
-            >
+            <button className="btn-hero-primary" onClick={() => onNavigate("predict")}>
               🔬 Run Prediction
             </button>
-            <button
-              className="btn-hero-secondary"
-              onClick={() => onNavigate("about")}
-            >
+            <button className="btn-hero-secondary" onClick={() => onNavigate("about")}>
               Learn More →
             </button>
           </div>
           <div className="hero-stats">
             {[
-              { val: "96.4%", label: "Model Accuracy" },
+              { val: "96.4%", label: "Model Accuracy"   },
               { val: "569",   label: "Training Samples" },
-              { val: "30",    label: "Clinical Features" },
-              { val: "<1s",   label: "Prediction Time"  },
+              { val: "14",    label: "Fields to Fill"   },
+              { val: "FREE",  label: "Gemini AI Reports" },
             ].map(({ val, label }) => (
               <div key={label}>
                 <div className="hero-stat-num">{val}</div>
@@ -81,14 +74,14 @@ function HomePage({ onNavigate }) {
           </div>
         </div>
 
-        {/* Right — mock preview card */}
+        {/* Right — mock preview */}
         <div className="hero-visual">
           <div className="hero-mock-card">
             <div className="float-badge top-right">
               <div className="float-badge-icon" style={{ background: "var(--green-bg)" }}>✅</div>
               <div className="float-badge-text">
                 <strong>Benign · Low Risk</strong>
-                <span>Confidence 97.3%</span>
+                <span>Confidence 97%</span>
               </div>
             </div>
 
@@ -103,8 +96,8 @@ function HomePage({ onNavigate }) {
             <div className="mock-track"><div className="mock-track-fill" /></div>
             <div className="mock-feat-grid">
               {[
-                ["17.8", "Mean Radius"],
-                ["1001", "Area Mean"],
+                ["17.8",  "Radius Mean"],
+                ["1001",  "Area Mean"],
                 ["0.300", "Concavity"],
                 ["0.147", "Concave Pts"],
               ].map(([v, l]) => (
@@ -113,10 +106,7 @@ function HomePage({ onNavigate }) {
                 </div>
               ))}
             </div>
-            <button
-              className="mock-btn"
-              onClick={() => onNavigate("predict")}
-            >
+            <button className="mock-btn" onClick={() => onNavigate("predict")}>
               Try Your Own Analysis
             </button>
 
@@ -124,7 +114,7 @@ function HomePage({ onNavigate }) {
               <div className="float-badge-icon" style={{ background: "var(--rose-pale)" }}>🧠</div>
               <div className="float-badge-text">
                 <strong>AI Report Ready</strong>
-                <span>Clinical analysis generated</span>
+                <span>5-section clinical analysis</span>
               </div>
             </div>
           </div>
@@ -134,7 +124,9 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// ─── Predict Page ─────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+//  PREDICT PAGE
+// ═════════════════════════════════════════════════════════════════
 function PredictPage({ onNewResult }) {
   const [result,  setResult]  = useState(null);
   const [loading, setLoading] = useState(false);
@@ -150,41 +142,55 @@ function PredictPage({ onNewResult }) {
         <span className="section-tag">Prediction Tool</span>
         <h2>Breast Cancer Risk Analysis</h2>
         <p>
-          Enter all 30 FNA biopsy measurements or load a sample case. The
-          model will predict the diagnosis and an AI report will be generated
-          automatically.
+          Enter <strong>14 core measurements</strong> or upload a biopsy report.
+          The remaining 16 values are auto-calculated · Gemini AI generates a
+          detailed report automatically.
         </p>
       </div>
 
       {loading && (
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "white", padding: "12px 24px", borderRadius: "var(--radius-pill)", boxShadow: "var(--shadow-sm)", fontSize: 14, color: "var(--text-muted)" }}>
-            <div className="loading-spinner" style={{ width: 20, height: 20, margin: 0 }} />
-            Running analysis…
+          <div
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 12,
+              background: "white", padding: "12px 24px",
+              borderRadius: "var(--radius-pill)", boxShadow: "var(--shadow-sm)",
+              fontSize: 14, color: "var(--text-muted)",
+            }}
+          >
+            <span
+              className="btn-spinner"
+              style={{
+                borderColor: "rgba(232,99,122,0.3)",
+                borderTopColor: "var(--rose)",
+              }}
+            />
+            Running prediction…
           </div>
         </div>
       )}
 
       <div className="predict-layout">
-        <Form onResult={handleResult} onLoading={setLoading} />
+        <Form   onResult={handleResult} onLoading={setLoading} />
         <Result result={result} />
       </div>
     </div>
   );
 }
 
-// ─── History Page ─────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+//  HISTORY PAGE
+// ═════════════════════════════════════════════════════════════════
 function HistoryPage({ history, onClear }) {
-  const totalPredictions = history.length;
-  const malignantCount   = history.filter((h) => h.prediction === "Malignant").length;
-  const benignCount      = totalPredictions - malignantCount;
-  const avgConf          = totalPredictions
-    ? Math.round(history.reduce((s, h) => s + h.probability * 100, 0) / totalPredictions)
+  const total    = history.length;
+  const malCount = history.filter((h) => h.prediction === "Malignant").length;
+  const benCount = total - malCount;
+  const avgConf  = total
+    ? Math.round(history.reduce((s, h) => s + h.probability * 100, 0) / total)
     : 0;
 
-  function formatTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleDateString("en-IN", {
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
@@ -192,10 +198,15 @@ function HistoryPage({ history, onClear }) {
 
   return (
     <div className="history-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 8 }}>
+      <div
+        style={{
+          display: "flex", justifyContent: "space-between",
+          alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 8,
+        }}
+      >
         <div>
           <h2>Prediction History</h2>
-          <p className="sub">All past analyses run in this browser session</p>
+          <p className="sub">All past analyses stored in this browser</p>
         </div>
         {history.length > 0 && (
           <button className="history-clear-btn" onClick={onClear}>
@@ -208,37 +219,39 @@ function HistoryPage({ history, onClear }) {
         <div className="history-empty">
           <div className="icon">📋</div>
           <h4>No predictions yet</h4>
-          <p>Run a prediction and it will appear here.</p>
+          <p>Run your first prediction and it will appear here.</p>
         </div>
       ) : (
         <>
           <div className="history-stats">
             {[
-              { val: totalPredictions, label: "Total Predictions" },
-              { val: benignCount,      label: "Benign Results",   color: "var(--green)" },
-              { val: malignantCount,   label: "Malignant Results",color: "var(--red)"   },
-              { val: avgConf + "%",    label: "Avg Confidence"    },
+              { val: total,          label: "Total",     color: null           },
+              { val: benCount,       label: "Benign",    color: "var(--green)" },
+              { val: malCount,       label: "Malignant", color: "var(--red)"   },
+              { val: `${avgConf}%`,  label: "Avg Conf",  color: null           },
             ].map(({ val, label, color }) => (
               <div className="hstat" key={label}>
-                <div className="hstat-val" style={color ? { color } : {}}>{val}</div>
+                <div className="hstat-val" style={color ? { color } : {}}>
+                  {val}
+                </div>
                 <div className="hstat-label">{label}</div>
               </div>
             ))}
           </div>
 
           <div className="history-list">
-            {[...history].reverse().map((item, idx) => {
-              const isMalignant = item.prediction === "Malignant";
+            {[...history].reverse().map((item, i) => {
+              const isMal = item.prediction === "Malignant";
               return (
-                <div className="history-item" key={item.timestamp + idx}>
-                  <div className={`history-item-badge ${isMalignant ? "malignant" : "benign"}`}>
-                    {isMalignant ? "⚠️" : "✅"}
+                <div className="history-item" key={item.timestamp + i}>
+                  <div className={`history-item-badge ${isMal ? "malignant" : "benign"}`}>
+                    {isMal ? "⚠️" : "✅"}
                   </div>
                   <div className="history-item-info">
                     <div className="history-item-title">{item.prediction}</div>
                     <div className="history-item-sub">
-                      Radius mean: {parseFloat(item.inputValues?.radius_mean ?? 0).toFixed(2)} ·
-                      Area mean: {Math.round(parseFloat(item.inputValues?.area_mean ?? 0))} ·
+                      Radius: {parseFloat(item.inputValues?.radius_mean ?? 0).toFixed(2)} ·
+                      Area: {Math.round(parseFloat(item.inputValues?.area_mean ?? 0))} ·
                       Concavity: {parseFloat(item.inputValues?.concavity_mean ?? 0).toFixed(4)}
                     </div>
                   </div>
@@ -246,7 +259,7 @@ function HistoryPage({ history, onClear }) {
                     <div className="history-item-conf">
                       {Math.round(item.probability * 100)}%
                     </div>
-                    <div className="history-item-time">{formatTime(item.timestamp)}</div>
+                    <div className="history-item-time">{fmtTime(item.timestamp)}</div>
                   </div>
                 </div>
               );
@@ -258,29 +271,38 @@ function HistoryPage({ history, onClear }) {
   );
 }
 
-// ─── About Page ───────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+//  ABOUT PAGE
+// ═════════════════════════════════════════════════════════════════
 function AboutPage() {
   const cards = [
     {
-      icon: "🧬",
-      title: "Dataset",
-      body: "The Wisconsin Breast Cancer Dataset (WBCD) contains 569 samples (212 malignant, 357 benign) with 30 features computed from digitized FNA biopsy images.",
+      icon: "🧬", title: "Dataset",
+      body: "Wisconsin Breast Cancer Dataset — 569 samples (212 malignant, 357 benign) with 30 FNA features computed from digitized biopsy images.",
     },
     {
-      icon: "🤖",
-      title: "ML Model",
-      body: "A Random Forest classifier trained and serialized with scikit-learn. Feature scaling uses StandardScaler. Achieves ~96.4% accuracy on the held-out test set.",
+      icon: "🤖", title: "ML Model",
+      body: "Random Forest classifier trained with scikit-learn. StandardScaler normalisation. ~96.4% accuracy on the held-out test set.",
     },
     {
-      icon: "⚙️",
-      title: "Backend",
-      body: "FastAPI (Python) serves the trained model via a POST /predict endpoint. CORS-enabled for local React development. Inputs are scaled before inference.",
+      icon: "⚙️", title: "Backend",
+      body: "FastAPI (Python) with /predict, /report, and /extract endpoints. Gemini API proxied server-side to avoid browser CORS restrictions.",
     },
     {
-      icon: "⚛️",
-      title: "Frontend",
-      body: "React 18 + Vite for fast development. Custom CSS design system using CSS variables. AI report generation powered by the Anthropic Claude API.",
+      icon: "💡", title: "Free AI",
+      body: "Reports and file extraction use Google Gemini 2.5 Flash — completely free via Google AI Studio (no credit card required).",
     },
+  ];
+
+  const derivations = [
+    ["Perimeter (mean / se / worst)", "2π × radius",             "Radius input"],
+    ["Area (mean / se / worst)",       "π × radius²",             "Radius input"],
+    ["Compactness (mean / se / worst)","perimeter² / area − 1",   "Radius (via perimeter + area)"],
+    ["Concavity (mean / se / worst)",  "concave_points × 1.8",    "Concave Points input"],
+    ["Smoothness Worst",               "smoothness_mean × 1.35",  "Smoothness Mean"],
+    ["Symmetry Worst",                 "symmetry_mean × 1.35",    "Symmetry Mean"],
+    ["Fractal Dimension Worst",        "fractal_dim_mean × 1.30", "Fractal Dimension Mean"],
+    ["Fractal Dimension SE",           "smoothness_se × 0.40",    "Smoothness SE"],
   ];
 
   return (
@@ -288,10 +310,11 @@ function AboutPage() {
       <span className="section-tag">About</span>
       <h2>OncoSight</h2>
       <p className="lead">
-        A full-stack AI application that combines a trained scikit-learn Random
-        Forest classifier with a Claude-powered report generator to provide
-        interpretable breast cancer risk predictions from fine needle aspiration
-        biopsy measurements.
+        A full-stack AI application combining a scikit-learn Random Forest
+        classifier with Google Gemini AI report generation. Users enter{" "}
+        <strong>14 core biopsy measurements</strong>; 16 additional values are
+        auto-derived using geometric formulas, and Gemini AI generates a
+        detailed 5-section oncology report — all free via Google AI Studio.
       </p>
 
       <div className="about-grid">
@@ -305,46 +328,54 @@ function AboutPage() {
       </div>
 
       <div className="about-card" style={{ marginBottom: 24 }}>
-        <h4 style={{ marginBottom: 12 }}>Feature Groups</h4>
+        <h4 style={{ marginBottom: 12 }}>
+          Field Reduction: 30 → 14 Inputs (16 auto-derived)
+        </h4>
         <table className="dataset-table">
           <thead>
             <tr>
-              <th>Group</th>
-              <th>Features</th>
-              <th>Description</th>
+              <th>Derived Field</th>
+              <th>Formula</th>
+              <th>Requires</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Mean</td>
-              <td>10 features</td>
-              <td>Mean value of each characteristic across all cells in the image</td>
-            </tr>
-            <tr>
-              <td>SE</td>
-              <td>10 features</td>
-              <td>Standard error — variability of each feature across cells</td>
-            </tr>
-            <tr>
-              <td>Worst</td>
-              <td>10 features</td>
-              <td>Mean of the 3 largest values (worst-case cells) for each feature</td>
-            </tr>
+            {derivations.map(([f, formula, from]) => (
+              <tr key={f}>
+                <td>{f}</td>
+                <td>
+                  <code
+                    style={{
+                      background: "var(--cream)",
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 12,
+                    }}
+                  >
+                    {formula}
+                  </code>
+                </td>
+                <td>{from}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       <div
         style={{
-          background: "var(--amber-bg)", border: "1px solid rgba(217,119,6,0.25)",
-          borderRadius: "var(--radius-md)", padding: "16px 20px",
-          fontSize: 13, color: "#92400e", lineHeight: 1.7,
+          background: "var(--amber-bg)",
+          border: "1px solid rgba(217,119,6,0.25)",
+          borderRadius: "var(--radius-md)",
+          padding: "16px 20px",
+          fontSize: 13,
+          color: "#92400e",
+          lineHeight: 1.7,
         }}
       >
         ⚠️ <strong>Medical Disclaimer:</strong> OncoSight is a research and
-        educational tool. It is not a certified medical device and must not be
-        used as a substitute for professional medical diagnosis. Always consult
-        a qualified oncologist or healthcare professional.
+        educational tool, not a certified medical device. Always consult a
+        qualified oncologist for diagnosis and treatment decisions.
       </div>
     </div>
   );
@@ -356,7 +387,7 @@ function AboutPage() {
 export default function App() {
   const [page,    setPage]    = useState("home");
   const [history, setHistory] = useState(loadHistory);
-  const { toasts, addToast }  = useToasts();
+  const { toasts, add }       = useToasts();
 
   function navigate(p) {
     setPage(p);
@@ -364,20 +395,20 @@ export default function App() {
   }
 
   function handleNewResult(r) {
-    const entry = { ...r, timestamp: Date.now() };
+    const entry   = { ...r, timestamp: Date.now() };
     const updated = [...history, entry];
     setHistory(updated);
     saveHistory(updated);
-    addToast(
+    add(
       `${r.prediction} · ${Math.round(r.probability * 100)}% confidence`,
-      r.prediction === "Benign" ? "success" : "error"
+      r.prediction === "Benign" ? "success" : "error",
     );
   }
 
   function clearHistory() {
     setHistory([]);
     saveHistory([]);
-    addToast("History cleared", "info");
+    add("History cleared", "info");
   }
 
   return (
@@ -394,7 +425,7 @@ export default function App() {
       <div className="footer-disclaimer">
         ⚠️ <strong>Medical Disclaimer:</strong> OncoSight is a research and
         educational tool, not a certified medical device. Always consult a
-        qualified healthcare provider for medical decisions.
+        qualified healthcare provider.
       </div>
       <footer className="site-footer">
         <div className="footer-logo">
@@ -402,12 +433,21 @@ export default function App() {
           OncoSight
         </div>
         <span className="footer-copy">
-          Wisconsin Breast Cancer Dataset · Built with FastAPI, React &amp; Claude
+          Wisconsin Breast Cancer Dataset · FastAPI · React · Gemini AI (Free)
         </span>
         <div className="footer-links">
-          <a href="https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic" target="_blank" rel="noreferrer">Dataset</a>
-          <a href="https://fastapi.tiangolo.com" target="_blank" rel="noreferrer">FastAPI</a>
-          <a href="https://anthropic.com" target="_blank" rel="noreferrer">Claude API</a>
+          <a
+            href="https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic"
+            target="_blank" rel="noreferrer"
+          >
+            Dataset
+          </a>
+          <a href="https://aistudio.google.com" target="_blank" rel="noreferrer">
+            Gemini API
+          </a>
+          <a href="https://fastapi.tiangolo.com" target="_blank" rel="noreferrer">
+            FastAPI
+          </a>
         </div>
       </footer>
 
@@ -415,9 +455,7 @@ export default function App() {
       <div className="toast-container">
         {toasts.map((t) => (
           <div className={`toast ${t.type}`} key={t.id}>
-            {t.type === "success" && "✅ "}
-            {t.type === "error"   && "⚠️ "}
-            {t.type === "info"    && "ℹ️ "}
+            {t.type === "success" ? "✅ " : t.type === "error" ? "⚠️ " : "ℹ️ "}
             {t.msg}
           </div>
         ))}

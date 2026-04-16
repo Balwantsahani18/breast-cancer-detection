@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function Navbar({ currentPage, onNavigate }) {
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn);
@@ -21,6 +22,7 @@ export default function Navbar({ currentPage, onNavigate }) {
         <span className="navbar-logo-dot" />
         OncoSight
       </button>
+
       <ul className="navbar-links">
         {links.map((l) => (
           <li key={l.key}>
