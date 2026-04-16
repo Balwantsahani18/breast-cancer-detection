@@ -316,7 +316,7 @@ export default function Result({ result }) {
               <p style={{ marginTop: 6, fontSize: 12, color: "var(--text-muted)" }}>
                 Make sure your backend is running and{" "}
                 <code>GEMINI_API_KEY</code> is set:&nbsp;
-                <code>export GEMINI_API_KEY=AIza...</code>
+                <code>export GEMINI_API_KEY=AIzaSyCstsSsxWH-Zzi51LwP0dQYb-aA5qPBqVw</code>
               </p>
             </div>
           )}
